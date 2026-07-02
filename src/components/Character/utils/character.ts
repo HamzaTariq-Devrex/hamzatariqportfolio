@@ -6,7 +6,8 @@ import { decryptFile } from "./decrypt";
 const setCharacter = (
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
-  camera: THREE.PerspectiveCamera
+  camera: THREE.PerspectiveCamera,
+  onDownloadProgress?: (loaded: number, total: number) => void
 ) => {
   const loader = new GLTFLoader();
   const dracoLoader = new DRACOLoader();
@@ -18,7 +19,8 @@ const setCharacter = (
       try {
         const encryptedBlob = await decryptFile(
           "/models/character.enc?v=2",
-          "MyCharacter12"
+          "MyCharacter12",
+          onDownloadProgress
         );
         const blobUrl = URL.createObjectURL(new Blob([encryptedBlob]));
 

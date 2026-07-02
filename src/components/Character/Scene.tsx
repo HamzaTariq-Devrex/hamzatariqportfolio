@@ -51,29 +51,53 @@ const Scene = () => {
 
       const light = setLighting(scene);
       let progress = setProgress((value) => setLoading(value));
-      const { loadCharacter } = setCharacter(renderer, scene, camera);
 
-      loadCharacter().then((gltf) => {
-        if (gltf) {
-          const animations = setAnimations(gltf);
-          hoverDivRef.current && animations.hover(gltf, hoverDivRef.current);
-          mixer = animations.mixer;
-          let character = gltf.scene;
-          setChar(character);
-          scene.add(character);
-          headBone = character.getObjectByName("spine006") || null;
-          screenLight = character.getObjectByName("screenlight") || null;
-          progress.loaded().then(() => {
-            setTimeout(() => {
-              light.turnOnLights();
-              animations.startIntro();
-            }, 1200);
-          });
-          window.addEventListener("resize", () =>
-            handleResize(renderer, camera, canvasDiv, character)
-          );
+      // Safety net: never leave the loading screen stuck. If the model
+      // is still downloading/parsing after this long (slow connection,
+      // stalled request), reveal the rest of the site anyway — the
+      // character will fade in on its own whenever it does finish.
+      const maxWaitTimer = setTimeout(() => progress.clear(), 8000);
+
+      const { loadCharacter } = setCharacter(
+        renderer,
+        scene,
+        camera,
+        (loaded, total) => {
+          if (!total) return;
+          // The download is the real bottleneck; cap at 90% so the last
+          // stretch (parse/compile) still has visible room to complete in.
+          setLoading(Math.min(90, Math.round((loaded / total) * 90)));
         }
-      });
+      );
+
+      loadCharacter()
+        .then((gltf) => {
+          clearTimeout(maxWaitTimer);
+          if (gltf) {
+            const animations = setAnimations(gltf);
+            hoverDivRef.current && animations.hover(gltf, hoverDivRef.current);
+            mixer = animations.mixer;
+            let character = gltf.scene;
+            setChar(character);
+            scene.add(character);
+            headBone = character.getObjectByName("spine006") || null;
+            screenLight = character.getObjectByName("screenlight") || null;
+            progress.loaded().then(() => {
+              setTimeout(() => {
+                light.turnOnLights();
+                animations.startIntro();
+              }, 1200);
+            });
+            window.addEventListener("resize", () =>
+              handleResize(renderer, camera, canvasDiv, character)
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Character model failed to load:", error);
+          clearTimeout(maxWaitTimer);
+          progress.clear();
+        });
 
       let mouse = { x: 0, y: 0 },
         interpolation = { x: 0.1, y: 0.2 };
