@@ -79,8 +79,8 @@ const SocialIcons = () => {
       {/* Resume Button */}
       <a
      className="resume-button"
-  href="/Hamza Tariq CV.pdf"
-  download="Hamza Tariq CV.pdf"
+  href="/Hamza Tariq Resume.pdf"
+  download="Hamza Tariq Resume.pdf"
   target="_blank"
   rel="noreferrer"
 >
