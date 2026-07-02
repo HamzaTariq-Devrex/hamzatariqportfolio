@@ -2,7 +2,7 @@
 
 Personal portfolio site for Hamza Tariq, Founder & Frontend Developer. A single-page, animation-heavy site featuring an interactive 3D character, scroll-driven GSAP timelines, and a project showcase carousel.
 
-**Live site:** [my-portfolio-4zxi.vercel.app](https://my-portfolio-4zxi.vercel.app)
+**Live site:** [hamzatariq.site](https://hamzatariq.site)
 
 ## Tech Stack
 
