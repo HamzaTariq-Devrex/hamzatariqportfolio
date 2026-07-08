@@ -9,27 +9,33 @@ const Loading = ({ percent }: { percent: number }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [clicked, setClicked] = useState(false);
 
-  if (percent >= 100) {
-    setTimeout(() => {
-      setLoaded(true);
-      setTimeout(() => {
-        setIsLoaded(true);
-      }, 300);
-    }, 100);
-  }
+  // These run once each, guarded by their own state — previously this
+  // ran unguarded in the render body, so every re-render after hitting
+  // 100% (there are several: loaded, isLoaded, clicked) rescheduled a
+  // fresh set of nested timers on top of the ones already pending.
+  useEffect(() => {
+    if (percent < 100 || loaded) return;
+    const timer = setTimeout(() => setLoaded(true), 50);
+    return () => clearTimeout(timer);
+  }, [percent, loaded]);
 
   useEffect(() => {
-    import("./utils/initialFX").then((module) => {
-      if (isLoaded) {
-        setClicked(true);
-        setTimeout(() => {
-          if (module.initialFX) {
-            module.initialFX();
-          }
-          setIsLoading(false);
-        }, 800);
-      }
-    });
+    if (!loaded || isLoaded) return;
+    const timer = setTimeout(() => setIsLoaded(true), 150);
+    return () => clearTimeout(timer);
+  }, [loaded, isLoaded]);
+
+  useEffect(() => {
+    // Preload eagerly (while the loading screen is still up) so it's
+    // ready by the time we actually need to call it below.
+    const initialFXModule = import("./utils/initialFX");
+    if (!isLoaded) return;
+    setClicked(true);
+    const timer = setTimeout(() => {
+      initialFXModule.then((module) => module.initialFX?.());
+      setIsLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
   }, [isLoaded]);
 
   function handleMouseMove(e: React.MouseEvent<HTMLElement>) {
