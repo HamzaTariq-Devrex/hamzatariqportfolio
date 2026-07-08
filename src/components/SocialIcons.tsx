@@ -12,46 +12,65 @@ const SocialIcons = () => {
   useEffect(() => {
     const social = document.getElementById("social") as HTMLElement;
 
-    social.querySelectorAll("span").forEach((item) => {
-      const elem = item as HTMLElement;
-      const link = elem.querySelector("a") as HTMLElement;
+    const icons = Array.from(social.querySelectorAll("span")).map((span) => ({
+      elem: span as HTMLElement,
+      link: (span as HTMLElement).querySelector("a") as HTMLElement,
+      current: { x: 0, y: 0 },
+    }));
 
-      const rect = elem.getBoundingClientRect();
-      let mouseX = rect.width / 2;
-      let mouseY = rect.height / 2;
-      let currentX = 0;
-      let currentY = 0;
+    const mouse = { x: 0, y: 0 };
+    const onMouseMove = (e: MouseEvent) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    };
+    document.addEventListener("mousemove", onMouseMove);
 
-      const updatePosition = () => {
-        currentX += (mouseX - currentX) * 0.1;
-        currentY += (mouseY - currentY) * 0.1;
+    // Original hit-test box for a 50x50 icon: x in (10,40), y in (5,40).
+    // Expressed as margins (not hardcoded pixels) off a freshly-measured
+    // rect each frame, so it still lines up if layout ever shifts.
+    const marginLeft = 10;
+    const marginRight = 10;
+    const marginTop = 5;
+    const marginBottom = 10;
 
-        link.style.setProperty("--siLeft", `${currentX}px`);
-        link.style.setProperty("--siTop", `${currentY}px`);
+    // Frame-rate-independent pull, tuned to match the original's ~60fps
+    // feel (a noticeably softer, more "weighted" pull than the cursor
+    // dot's own follow speed).
+    const pullRate = 6.5;
+    let lastTime = performance.now();
+    let rafId = 0;
 
-        requestAnimationFrame(updatePosition);
-      };
+    const loop = (time: number) => {
+      const dt = Math.min((time - lastTime) / 1000, 0.1);
+      lastTime = time;
+      const t = 1 - Math.exp(-pullRate * dt);
 
-      const onMouseMove = (e: MouseEvent) => {
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+      icons.forEach((icon) => {
+        const rect = icon.elem.getBoundingClientRect();
+        const x = mouse.x - rect.left;
+        const y = mouse.y - rect.top;
+        const within =
+          x > marginLeft &&
+          x < rect.width - marginRight &&
+          y > marginTop &&
+          y < rect.height - marginBottom;
+        const targetX = within ? x : rect.width / 2;
+        const targetY = within ? y : rect.height / 2;
 
-        if (x < 40 && x > 10 && y < 40 && y > 5) {
-          mouseX = x;
-          mouseY = y;
-        } else {
-          mouseX = rect.width / 2;
-          mouseY = rect.height / 2;
-        }
-      };
+        icon.current.x += (targetX - icon.current.x) * t;
+        icon.current.y += (targetY - icon.current.y) * t;
+        icon.link.style.setProperty("--siLeft", `${icon.current.x}px`);
+        icon.link.style.setProperty("--siTop", `${icon.current.y}px`);
+      });
 
-      document.addEventListener("mousemove", onMouseMove);
-      updatePosition();
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
 
-      return () => {
-        document.removeEventListener("mousemove", onMouseMove);
-      };
-    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener("mousemove", onMouseMove);
+    };
   }, []);
 
   return (
