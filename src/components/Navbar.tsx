@@ -13,7 +13,10 @@ const Navbar = () => {
     smoother = ScrollSmoother.create({
       wrapper: "#smooth-wrapper",
       content: "#smooth-content",
-      smooth: 1.7,
+      // 1.7s of catch-up lag read as sluggish/rubber-bandy; GSAP's own
+      // default is 0.8s. 1.1s keeps a soft inertial feel without the
+      // delayed, disconnected-from-input sensation.
+      smooth: 1.1,
       speed: 1.7,
       effects: true,
       autoResize: true,
